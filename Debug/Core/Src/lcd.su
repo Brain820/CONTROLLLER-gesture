@@ -1,0 +1,12 @@
+../Core/Src/lcd.c:11:6:lcd_init	8	static
+../Core/Src/lcd.c:57:6:lcd_write	16	static
+../Core/Src/lcd.c:148:6:lcd_puts	16	static
+../Core/Src/lcd.c:195:6:clr_data	16	static
+../Core/Src/lcd.c:262:6:clr_select	8	static
+../Core/Src/lcd.c:271:6:lcd_clear	8	static
+../Core/Src/lcd.c:276:6:default_lcd_print	16	static
+../Core/Src/lcd.c:334:6:lcd_update	16	static
+../Core/Src/lcd.c:375:6:time_calculate	24	static
+../Core/Src/lcd.c:386:6:clock_page	8	static
+../Core/Src/lcd.c:395:6:Total_Time_Print	48	static
+../Core/Src/lcd.c:422:6:home_page	8	static

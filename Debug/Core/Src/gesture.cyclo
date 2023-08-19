@@ -1,0 +1,9 @@
+../Core/Src/gesture.c:17:9:init_gesture	7
+../Core/Src/gesture.c:105:9:gestureFIFOAvailable	3
+../Core/Src/gesture.c:123:9:readGesture	1
+../Core/Src/gesture.c:132:9:handleGesture	15
+../Core/Src/gesture.c:218:9:gestureAvailable	5
+../Core/Src/gesture.c:266:9:write8	2
+../Core/Src/gesture.c:277:9:read8	2
+../Core/Src/gesture.c:289:6:debugPrint	1
+../Core/Src/gesture.c:294:6:debugPrintln	1
