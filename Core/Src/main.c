@@ -210,17 +210,20 @@ void print_int(int _data)
 	lcd_puts(3, 2, buffer); // x = 2, y = 3
 }
 
+uint8_t chk_cmd = 0;
 uint8_t update_key_press()
 {
 	if (key_pressed.prv)
 	{
 		current_pos.key_number = _prv;
 		key_pressed.prv = 0;
+		chk_cmd = 1;
 		return _prv;
 	}
 	else if (key_pressed.nxt)
 	{
 		key_pressed.nxt = 0;
+		chk_cmd = 1;
 		current_pos.key_number = _nxt;
 
 		return _nxt;
@@ -246,13 +249,11 @@ uint8_t update_key_press()
 		clr_data(endo);
 		clr_select();
 		//		lcd_puts(3, 10, (int8_t *)">");
-		if (pg2_fc == 0)
-		{
-			if (data_reg.endo)
-				lcd_puts(2, 17, (int8_t *)"ON");
-			else
-				lcd_puts(2, 17, (int8_t *)"OFF");
-		}
+
+		if (data_reg.endo)
+			lcd_puts(2, 17, (int8_t *)"ON");
+		else
+			lcd_puts(2, 17, (int8_t *)"OFF");
 
 		return _depth;
 	}
@@ -261,6 +262,7 @@ uint8_t update_key_press()
 		key_pressed.pos = 0;
 		current_pos.key_number = _pos;
 		last_ps = _pos;
+		chk_cmd = 0;
 		return _pos;
 	}
 	else if (key_pressed.neg)
@@ -268,6 +270,7 @@ uint8_t update_key_press()
 		key_pressed.neg = 0;
 		current_pos.key_number = _neg;
 		last_ps = _neg;
+		chk_cmd = 0;
 		return _neg;
 	}
 
@@ -793,25 +796,38 @@ void update_screen_data()
 
 		clr_select();
 		lcd_puts(1, 0, (int8_t *)">");
-		send_cmd(data_reg.intensity, intensity);
+		if (!chk_cmd)
+		{
+			send_cmd(data_reg.intensity, intensity);
+		}
+
 		break;
 
 	case color:
 		if (data_reg.color == 1)
 		{
 			lcd_puts(2, 7, (int8_t *)"CW");
-			send_cmd(5, color);
+			if (!chk_cmd)
+			{
+				send_cmd(5, color);
+			}
 		}
 		else if (data_reg.color == -1)
 		{
 			lcd_puts(2, 7, (int8_t *)"WW");
-			send_cmd(-5, color);
+			if (!chk_cmd)
+			{
+				send_cmd(-5, color);
+			}
 		}
 
 		else
 		{
 			lcd_puts(2, 7, (int8_t *)"NW");
-			send_cmd(0, color);
+			if (!chk_cmd)
+			{
+				send_cmd(0, color);
+			}
 		}
 
 		// sprintf(buffer, "%02d", data_reg.color);
@@ -826,10 +842,12 @@ void update_screen_data()
 		clr_select();
 		lcd_puts(3, 0, (int8_t *)">");
 		send_cmd(data_reg.sensor, sensor);
+
 		if (data_reg.sensor)
 			lcd_puts(3, 7, (int8_t *)"ON");
 		else
 			lcd_puts(3, 7, (int8_t *)"OFF");
+
 		break;
 
 	case lamp:
@@ -856,7 +874,10 @@ void update_screen_data()
 		// {
 		// 	send_cmd(data_reg.endo, endo);
 		// }
-		send_cmd(data_reg.endo, endo);
+		if (!chk_cmd)
+		{
+			send_cmd(data_reg.endo, endo);
+		}
 		if (data_reg.endo)
 			lcd_puts(2, 17, (int8_t *)"ON");
 		else
@@ -871,6 +892,7 @@ void update_screen_data()
 		if (current_pos.key_number == _pos || current_pos.key_number == _neg)
 		{
 			send_cmd(data_reg.depth, depth);
+			HAL_Delay(200);
 		}
 		if (data_reg.depth)
 		{
@@ -881,9 +903,29 @@ void update_screen_data()
 		{
 
 			lcd_puts(3, 17, (int8_t *)"OFF");
-			clr_data(intensity);
-			sprintf(buffer, "%02d", data_reg.intensity);
-			lcd_puts(1, 7, (int8_t *)buffer);
+
+			if (data_reg.color == 1)
+			{
+				send_cmd(5, color);
+			}
+			else if (data_reg.color == -1)
+			{
+				send_cmd(-5, color);
+			}
+			else
+			{
+				clr_data(intensity);
+				// if nw
+				sprintf(buffer, "%02d", data_reg.intensity);
+				lcd_puts(1, 7, (int8_t *)buffer);
+			}
+
+
+
+
+			// if cw
+
+			// if ww
 		}
 
 		break;
@@ -954,6 +996,11 @@ void send_cmd(int8_t x, int8_t mode)
 		data[2] = '_';
 		data[3] = 48 + x;
 		HAL_UART_Transmit(&huart1, &data[0], 5, 100);
+
+
+
+
+
 		break;
 	case 8:
 
@@ -1039,10 +1086,28 @@ void page1_print(void)
 	sprintf(buffer, "%02d", data_reg.intensity);
 	lcd_puts(1, 7, (int8_t *)buffer);
 
-	sprintf(buffer, "%02d", data_reg.color);
-	lcd_puts(2, 7, (int8_t *)"NW");
+//	sprintf(buffer, "%02d", data_reg.color);
+	if (data_reg.color == 1)
+		{
+			lcd_puts(2, 7, (int8_t *)"CW");
+
+		}
+		else if (data_reg.color == -1)
+		{
+			lcd_puts(2, 7, (int8_t *)"WW");
+
+		}
+
+		else
+		{
+			lcd_puts(2, 7, (int8_t *)"NW");
+
+		}
+
+//	lcd_puts(2, 7, (int8_t *)"NW");
 
 	clr_data(sensor);
+
 	if (data_reg.sensor)
 		lcd_puts(3, 7, (int8_t *)"ON");
 	else
@@ -1308,6 +1373,7 @@ int main(void)
 	pg3_sm = off;
 	pg3_md = off;
 	pg3_wd = off;
+	// pg2_fc = 0;
 
 	send_cmd(1, intensity); // F1
 	send_cmd(1, lamp);		// F2
@@ -1412,11 +1478,17 @@ int main(void)
 				key_pressed.prv = 0;
 				// interrupt_reg.update_data = 0;
 				data_reg.sensor = !data_reg.sensor;
-				clr_data(sensor);
-				if (data_reg.sensor)
-					lcd_puts(3, 7, (int8_t *)"ON");
-				else
-					lcd_puts(3, 7, (int8_t *)"OFF");
+				if (last_pg == 1)
+				{
+					clr_data(sensor);
+
+
+					if (data_reg.sensor)
+						lcd_puts(3, 7, (int8_t *)"ON");
+					else
+						lcd_puts(3, 7, (int8_t *)"OFF");
+
+				}
 				sns_status = 1;
 			}
 
@@ -1601,7 +1673,7 @@ int main(void)
 			interrupt_reg.update_data = 0;
 			interrupt_reg.key_flag = 0;
 		}
-		HAL_Delay(50);
+		HAL_Delay(100);
 	}
 	/* USER CODE END 3 */
 }

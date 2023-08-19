@@ -60,8 +60,8 @@ all: main-build
 main-build: ot_new.elf secondary-outputs
 
 # Tool invocations
-ot_new.elf ot_new.map: $(OBJS) $(USER_OBJS) C:\Rahul\ panchal\cognate\ india\BHEEM\OT_LIGHT_GESTURE\New\ gesture\mcpcb_gesture_prod\ot_new\STM32F030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ot_new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Rahul panchal\cognate india\BHEEM\OT_LIGHT_GESTURE\New gesture\mcpcb_gesture_prod\ot_new\STM32F030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ot_new.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+ot_new.elf ot_new.map: $(OBJS) $(USER_OBJS) C:\Rahul\ panchal\cognate\ india\BHEEM\production\gesture\STM32F030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "ot_new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"C:\Rahul panchal\cognate india\BHEEM\production\gesture\STM32F030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ot_new.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
