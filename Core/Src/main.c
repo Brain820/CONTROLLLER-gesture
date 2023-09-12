@@ -45,7 +45,7 @@ uint8_t pg3_sm, pg3_md, pg3_wd = 0;
 
 uint32_t tt_cnt = 0;
 uint8_t last_ps;
-
+uint8_t Rx_data[2];
 enum pos
 {
 	intensity = 1,
@@ -62,7 +62,8 @@ enum key
 	_nxt,
 	_depth,
 	_neg,
-	_pos
+	_pos,
+	_lmp
 };
 
 struct key_status_reg
@@ -150,19 +151,48 @@ UART_HandleTypeDef huart1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM6_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM14_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
 void home_page(void);
 void lcd_clear(void);
 void lcd_init(void);
 void lcd_puts(uint8_t x, uint8_t y, int8_t *string);
+
+// volatile  uint8_t intr = 0;
+// void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//	HAL_UART_Receive_IT(&huart1, Rx_data, 2);
+//	intr = 1;
+// }
+
+volatile uint8_t int_flag = 0;
+uint8_t trans[2];
+uint8_t pic;
+
+// void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//   HAL_UART_Receive_DMA(&huart1, trans, 2);
+//   int_flag = 1;
+// }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	//	printf(Rx_data);
+	HAL_UART_Receive_IT(&huart1, trans, 2);
+
+	//  HAL_UART_Transmit(&huart1,trans,10,HAL_MAX_DELAY);
+	//  memset(Rx_data,0,10);
+
+	int_flag = 1;
+}
 
 uint8_t but_state = 0;
 // Callback: timer has rolled over
@@ -528,6 +558,21 @@ void update_new_data()
 	case _neg:
 		set_data_negative();
 		break;
+	case _lmp:
+		data_reg.lamp = !data_reg.lamp;
+		current_pos.position_cursor = lamp;
+		if (data_reg.lamp)
+		{
+
+			data_reg.lamp = 1;
+		}
+
+		else
+		{
+
+			data_reg.lamp = 0;
+		}
+		break;
 	}
 }
 
@@ -539,55 +584,91 @@ void page_2_print()
 
 void page_3_print()
 {
-	char buf[3];
-	lcd_puts(0, 0, (int8_t *)">");
-	lcd_puts(0, 1, (int8_t *)"FOCUS  :");
-	lcd_puts(1, 1, (int8_t *)"SMALL  : ");
-	lcd_puts(2, 1, (int8_t *)"Medium : ");
-	lcd_puts(3, 1, (int8_t *)"Wide   : ");
+	// char buf[3];
+	// lcd_puts(0, 0, (int8_t *)">");
+	// lcd_puts(0, 1, (int8_t *)"FOCUS  :");
+	// lcd_puts(1, 1, (int8_t *)"SMALL  : ");
+	// lcd_puts(2, 1, (int8_t *)"Medium : ");
+	// lcd_puts(3, 1, (int8_t *)"Wide   : ");
 
-	if (pg3_sm)
-	{
-		clr_data(8);
-		send_cmd(pg3_sm, 8);
-		lcd_puts(1, 10, (int8_t *)"ON");
-		lcd_puts(3, 10, (int8_t *)"OFF");
-		lcd_puts(2, 10, (int8_t *)"OFF");
-	}
+	// lcd_puts(1, 10, (int8_t *)"ON");
+	// lcd_puts(3, 10, (int8_t *)"OFF");
+	// lcd_puts(2, 10, (int8_t *)"OFF");
+
+	// switch (current_pos.position_cursor)
+	// {
+
+	// case 1:
+	// 		if (pg3_sm)
+	// 			lcd_puts(1, 17, (int8_t *)"ON");
+	// 		else
+	// 			lcd_puts(1, 17, (int8_t *)"OFF");
+
+	// 	break;
+	// case 2:
+	// 		if (pg3_md)
+	// 			lcd_puts(1, 17, (int8_t *)"ON");
+	// 		else
+	// 			lcd_puts(1, 17, (int8_t *)"OFF");
+	// 	break;
+	// case 3:
+	// 		if (pg3_wd)
+	// 			lcd_puts(1, 17, (int8_t *)"ON");
+	// 		else
+	// 			lcd_puts(1, 17, (int8_t *)"OFF");
+	// 	break;
+	// }
+
+	// if (pg3_sm)
+	// {
+	// 	clr_data(8);
+	// 	send_cmd(pg3_sm, 8);
+	// 	lcd_puts(1, 10, (int8_t *)"ON");
+	// 	lcd_puts(3, 10, (int8_t *)"OFF");
+	// 	lcd_puts(2, 10, (int8_t *)"OFF");
+	// }
 	// else
 	// {
 	// 	lcd_puts(1, 10, (int8_t *)"OFF");
+	// 	send_cmd(pg3_sm, 8);
 	// }
 
-	else if (pg3_md)
-	{
-		clr_data(9);
-		send_cmd(pg3_md, 9);
-		lcd_puts(2, 10, (int8_t *)"ON");
-		lcd_puts(3, 10, (int8_t *)"OFF");
-		lcd_puts(1, 10, (int8_t *)"OFF");
-	}
+	//  if (pg3_md)
+	// {
+	// 	clr_data(9);
+	// 	send_cmd(pg3_md, 9);
+	// 	lcd_puts(2, 10, (int8_t *)"ON");
+	// 	lcd_puts(3, 10, (int8_t *)"OFF");
+	// 	lcd_puts(1, 10, (int8_t *)"OFF");
+	// }
 
 	// else
 	// {
 	// 	lcd_puts(2, 10, (int8_t *)"OFF");
+	// 	send_cmd(pg3_md, 9);
 	// }
 
-	else if (pg3_wd)
-	{
-		clr_data(10);
-		send_cmd(pg3_wd, 10);
-		lcd_puts(3, 10, (int8_t *)"ON");
-		lcd_puts(1, 10, (int8_t *)"OFF");
-		lcd_puts(2, 10, (int8_t *)"OFF");
-	}
+	//  if (pg3_wd)
+	// {
+	// 	clr_data(10);
+	// 	send_cmd(pg3_wd, 10);
+	// 	lcd_puts(3, 10, (int8_t *)"ON");
+	// 	lcd_puts(1, 10, (int8_t *)"OFF");
+	// 	lcd_puts(2, 10, (int8_t *)"OFF");
+	// }
 
-	else
-	{
-		lcd_puts(3, 10, (int8_t *)"OFF");
-		lcd_puts(1, 10, (int8_t *)"OFF");
-		lcd_puts(2, 10, (int8_t *)"OFF");
-	}
+	// else
+	// {
+	// 	send_cmd(pg3_wd, 10);
+	// 	lcd_puts(3, 10, (int8_t *)"OFF");
+	// }
+
+	// else
+	// {
+	// 	lcd_puts(3, 10, (int8_t *)"OFF");
+	// 	lcd_puts(1, 10, (int8_t *)"OFF");
+	// 	lcd_puts(2, 10, (int8_t *)"OFF");
+	// }
 }
 
 void update_screen_data_2()
@@ -612,19 +693,25 @@ void update_screen_data_3()
 
 	// if (current_pos.key_number == _pos || current_pos.key_number == _neg)
 
+	lcd_puts(0, 0, (int8_t *)">");
+	lcd_puts(0, 1, (int8_t *)"FOCUS  :");
+	lcd_puts(1, 1, (int8_t *)"SMALL  : ");
+	lcd_puts(2, 1, (int8_t *)"Medium : ");
+	lcd_puts(3, 1, (int8_t *)"Wide   : ");
+
 	switch (current_pos.position_cursor)
 	{
 
 	case 7:
-		lcd_puts(0, 0, (int8_t *)">");
-		lcd_puts(1, 0, (int8_t *)" ");
-		lcd_puts(2, 0, (int8_t *)" ");
-		lcd_puts(3, 0, (int8_t *)" ");
-		if (pg2_fc)
+
+		if (pg2_fc == 1)
 		{
 
 			lcd_puts(0, 15, (int8_t *)"  ");
 			lcd_puts(0, 10, (int8_t *)"Enable");
+			lcd_puts(1, 10, (int8_t *)"OFF");
+			lcd_puts(2, 10, (int8_t *)"OFF");
+			lcd_puts(3, 10, (int8_t *)"OFF");
 			if (focus_upd)
 			{
 				lcd_puts(3, 10, (int8_t *)"OFF");
@@ -647,8 +734,16 @@ void update_screen_data_3()
 			// }
 			// send_cmd(0, 11);
 		}
+		// else if(pg2_fc == 5)
+		// {
+
+		// }
 		else
 		{
+			lcd_puts(0, 0, (int8_t *)">");
+			lcd_puts(1, 0, (int8_t *)" ");
+			lcd_puts(2, 0, (int8_t *)" ");
+			lcd_puts(3, 0, (int8_t *)" ");
 			// focus_upd=1;
 			if (focus_upd == 1)
 			{
@@ -676,11 +771,13 @@ void update_screen_data_3()
 		lcd_puts(1, 0, (int8_t *)">");
 		lcd_puts(2, 0, (int8_t *)" ");
 		lcd_puts(3, 0, (int8_t *)" ");
+		lcd_puts(0, 10, (int8_t *)"Enable");
 
 		if (pg3_sm)
 		{
 			focus_upd = 0;
 			lcd_puts(1, 10, (int8_t *)"   ");
+			lcd_puts(1, 17, (int8_t *)"   ");
 			lcd_puts(1, 10, (int8_t *)"ON");
 			lcd_puts(2, 10, (int8_t *)"OFF");
 			lcd_puts(3, 10, (int8_t *)"OFF");
@@ -688,12 +785,16 @@ void update_screen_data_3()
 
 			// send_cmd(pg3_sm, 8);
 		}
-		// else
-		// {
-		// 	lcd_puts(1, 10, (int8_t *)"OFF");
-		// 	// lcd_puts(3, 10, (int8_t *)"ON");
-		// 	send_cmd(!pg3_sm, 8);
-		// }
+		else
+		{
+			lcd_puts(1, 10, (int8_t *)"OFF");
+			lcd_puts(2, 10, (int8_t *)"OFF");
+			lcd_puts(3, 10, (int8_t *)"OFF");
+			// lcd_puts(2, 10, (int8_t *)"OFF");
+			// lcd_puts(3, 10, (int8_t *)"OFF");
+			// lcd_puts(3, 10, (int8_t *)"ON");
+			send_cmd(pg3_sm, 8);
+		}
 
 		// // send_cmd(0, 9);
 		// // send_cmd(0, 10);
@@ -711,6 +812,7 @@ void update_screen_data_3()
 		lcd_puts(1, 0, (int8_t *)" ");
 		lcd_puts(2, 0, (int8_t *)">");
 		lcd_puts(3, 0, (int8_t *)" ");
+		lcd_puts(0, 10, (int8_t *)"Enable");
 		if (pg3_md)
 		{
 			lcd_puts(2, 10, (int8_t *)"   ");
@@ -719,11 +821,15 @@ void update_screen_data_3()
 			lcd_puts(3, 10, (int8_t *)"OFF");
 			send_cmd(pg3_md, 9);
 		}
-		// else
-		// {
-		// 	lcd_puts(2, 10, (int8_t *)"OFF");
-		// 	send_cmd(!pg3_md, 9);
-		// }
+		else
+		{
+			// lcd_puts(1, 10, (int8_t *)"OFF");
+			lcd_puts(1, 10, (int8_t *)"OFF");
+			lcd_puts(2, 10, (int8_t *)"OFF");
+			lcd_puts(3, 10, (int8_t *)"OFF");
+			// lcd_puts(3, 10, (int8_t *)"OFF");
+			send_cmd(pg3_md, 9);
+		}
 		// if (last_ps == _pos || last_ps == _neg)
 		// {
 		// 	// send_cmd(0, 10);
@@ -737,6 +843,7 @@ void update_screen_data_3()
 		lcd_puts(1, 0, (int8_t *)" ");
 		lcd_puts(2, 0, (int8_t *)" ");
 		lcd_puts(3, 0, (int8_t *)">");
+		lcd_puts(0, 10, (int8_t *)"Enable");
 		if (pg3_wd)
 		{
 
@@ -744,10 +851,20 @@ void update_screen_data_3()
 			lcd_puts(1, 10, (int8_t *)"OFF");
 			lcd_puts(2, 10, (int8_t *)"OFF");
 			lcd_puts(3, 10, (int8_t *)"ON");
-			if (current_pos.key_number == _pos)
-			{
-				send_cmd(pg3_wd, 10);
-			}
+			send_cmd(pg3_wd, 10);
+		}
+
+		else
+		{
+			// lcd_puts(1, 10, (int8_t *)"OFF");
+			// lcd_puts(2, 10, (int8_t *)"OFF");
+			// lcd_puts(3, 10, (int8_t *)"OFF");
+			// lcd_puts(2, 10, (int8_t *)"OFF");
+
+			lcd_puts(1, 10, (int8_t *)"OFF");
+			lcd_puts(2, 10, (int8_t *)"OFF");
+			lcd_puts(3, 10, (int8_t *)"OFF");
+			send_cmd(pg3_md, 10);
 		}
 		// else
 		// {
@@ -854,7 +971,8 @@ void update_screen_data()
 		clr_data(lamp);
 		clr_select();
 		lcd_puts(1, 10, (int8_t *)">");
-		if (current_pos.key_number == _pos || current_pos.key_number == _neg)
+		send_cmd(data_reg.lamp, lamp);
+		if (current_pos.key_number == _pos || current_pos.key_number == _neg || current_pos.key_number == _lmp)
 		{
 			send_cmd(data_reg.lamp, lamp);
 		}
@@ -919,9 +1037,6 @@ void update_screen_data()
 				sprintf(buffer, "%02d", data_reg.intensity);
 				lcd_puts(1, 7, (int8_t *)buffer);
 			}
-
-
-
 
 			// if cw
 
@@ -996,10 +1111,6 @@ void send_cmd(int8_t x, int8_t mode)
 		data[2] = '_';
 		data[3] = 48 + x;
 		HAL_UART_Transmit(&huart1, &data[0], 5, 100);
-
-
-
-
 
 		break;
 	case 8:
@@ -1086,25 +1197,22 @@ void page1_print(void)
 	sprintf(buffer, "%02d", data_reg.intensity);
 	lcd_puts(1, 7, (int8_t *)buffer);
 
-//	sprintf(buffer, "%02d", data_reg.color);
+	//	sprintf(buffer, "%02d", data_reg.color);
 	if (data_reg.color == 1)
-		{
-			lcd_puts(2, 7, (int8_t *)"CW");
+	{
+		lcd_puts(2, 7, (int8_t *)"CW");
+	}
+	else if (data_reg.color == -1)
+	{
+		lcd_puts(2, 7, (int8_t *)"WW");
+	}
 
-		}
-		else if (data_reg.color == -1)
-		{
-			lcd_puts(2, 7, (int8_t *)"WW");
+	else
+	{
+		lcd_puts(2, 7, (int8_t *)"NW");
+	}
 
-		}
-
-		else
-		{
-			lcd_puts(2, 7, (int8_t *)"NW");
-
-		}
-
-//	lcd_puts(2, 7, (int8_t *)"NW");
+	//	lcd_puts(2, 7, (int8_t *)"NW");
 
 	clr_data(sensor);
 
@@ -1338,9 +1446,9 @@ int main(void)
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_TIM6_Init();
-	MX_I2C1_Init();
 	MX_USART1_UART_Init();
 	MX_TIM14_Init();
+	MX_I2C1_Init();
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start_IT(&htim6);
 	HAL_TIM_Base_Start_IT(&htim14);
@@ -1373,12 +1481,19 @@ int main(void)
 	pg3_sm = off;
 	pg3_md = off;
 	pg3_wd = off;
+
+	uint8_t lst_fg = 1;
+	uint8_t lst_btm = 0;
 	// pg2_fc = 0;
 
 	send_cmd(1, intensity); // F1
 	send_cmd(1, lamp);		// F2
 	send_cmd(0, endo);		// F3
-							/* USER CODE END 2 */
+
+	HAL_UART_Receive_IT(&huart1, trans, 2);
+	//	 HAL_UART_Receive_DMA(&huart1, trans, 2);
+	//	HAL_UART_Receive_IT(&huart1,pic,1);
+	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
@@ -1387,6 +1502,251 @@ int main(void)
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
+
+		// HAL_UART_Receive (&huart1, &trans[0], 4, HAL_MAX_DELAY);
+		if (int_flag == 1)
+		{
+
+			/******************/
+			// lamp on/off
+			int_flag = 0;
+			// HAL_UART_Transmit(&huart1, trans, 2, HAL_MAX_DELAY);
+
+			if (trans[1] == '1')
+			{
+				pg2_fc = 0;
+				lst_btm = 1;
+				current_pos.key_number = _lmp; // _depth
+				current_pos.position_cursor = lamp;
+				interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "1$", 2, 5);
+			}
+
+			// inten up
+			else if (trans[1] == '2')
+			{
+				pg2_fc = 0;
+				lst_btm = 2;
+				current_pos.key_number = _pos;
+				current_pos.position_cursor = intensity;
+				interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "2$", 5, 5);
+			}
+
+			// inten down
+			else if (trans[1] == '3')
+			{
+				pg2_fc = 0;
+				lst_btm = 3;
+				current_pos.key_number = _neg;
+				current_pos.position_cursor = intensity;
+				interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "3$", 5, 5);
+			}
+
+			// color +ve
+			else if (trans[1] == '4')
+			{
+				pg2_fc = 0;
+				lst_btm = 4;
+				// right side
+				current_pos.key_number = _pos; // _depth
+				current_pos.position_cursor = color;
+				interrupt_reg.update_data = 1;
+
+				// HAL_UART_Transmit(&huart1, "4$", 5, 5);
+			}
+
+			// color -ve
+
+			else if (trans[1] == '5')
+			{
+				pg2_fc = 0;
+				lst_btm = 5;
+				// left side
+				current_pos.key_number = _neg; // _depth
+				current_pos.position_cursor = color;
+				interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "5$", 5, 5);
+			}
+
+			else if (trans[1] == '6')
+			{
+				// 	// left side
+				pg2_fc = 1; // print pg3
+				if(lst_btm == 6)
+				{
+					if(current_pos.position_cursor >= 3)
+					{
+						current_pos.position_cursor =  1;
+					}
+					else 
+					{
+						current_pos.position_cursor++;
+					}
+				}
+				
+
+				// if (lst_fg == 1)
+				// {
+				// 	current_pos.position_cursor = 1;
+				// 	pg3_sm = 1;
+				// 	lst_fg = 2;
+				// }
+				// else if (lst_fg == 2)
+				// {
+				// 	current_pos.position_cursor = 2;
+				// 	pg3_md = 1;
+				// 	lst_fg = 3;
+				// }
+
+				// else if (lst_fg == 3)
+				// {
+				// 	current_pos.position_cursor = 3;
+				// 	pg3_wd = 1;
+				// 	lst_fg = 1;
+				// }
+
+				if (current_pos.position_cursor == 1)
+				{
+					pg3_sm = 1;
+					// current_pos.position_cursor = 2;
+				}
+				else if (current_pos.position_cursor == 2)
+				{
+					pg3_md = 1;
+					// current_pos.position_cursor = 3;
+				}
+				else if (current_pos.position_cursor == 3)
+				{
+					pg3_wd = 1;
+					// current_pos.position_cursor = 1;
+				}
+				else
+				{
+					current_pos.position_cursor = 1;
+				}
+				lcd_clear();
+				last_pg = 3;
+				update_screen_data_3();
+					lst_btm = 6;
+				// interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "6$", 5, 5);
+			}
+
+			else if (trans[1] == '7')
+			{
+				// print pg3
+				pg2_fc = 1;
+				lst_btm = 7;
+
+				// if (lst_fg == 1)
+				// {
+				// 	current_pos.position_cursor = 1;
+				// 	pg3_sm = 0;
+				// 	// lst_fg = 2;
+				// }
+				// else if (lst_fg == 2)
+				// {
+				// 	current_pos.position_cursor = 2;
+				// 	pg3_md = 0;
+				// 	// lst_fg = 3;
+				// }
+
+				// else if (lst_fg == 3)
+				// {
+				// 	current_pos.position_cursor = 3;
+				// 	pg3_wd = 0;
+				// 	// lst_fg = 1;
+				// }
+
+				if (current_pos.position_cursor == 1)
+				{
+					pg3_sm = 0;
+					// current_pos.position_cursor = 2;
+				}
+				else if (current_pos.position_cursor == 2)
+				{
+					pg3_md = 0;
+					// current_pos.position_cursor = 3;
+				}
+				else if (current_pos.position_cursor == 3)
+				{
+					pg3_wd = 0;
+					// current_pos.position_cursor = 1;
+				}
+				// else
+				// {
+				// 	current_pos.position_cursor = 1;
+				// }
+				lcd_clear();
+				last_pg = 3;
+				update_screen_data_3();
+
+				// interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "7$", 5, 5);
+			}
+
+			// endo on
+
+			else if (trans[1] == '8')
+			{
+				pg2_fc = 0;
+				lst_btm = 8;
+
+				// left side
+
+				// if (data_reg.endo)
+				// {
+				// 	current_pos.key_number = _neg; // _depth
+				// }
+				// else
+				// {
+				// 	current_pos.key_number = _pos;
+				// }
+				current_pos.key_number = _pos;
+				current_pos.position_cursor = endo;
+				interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "8$", 2, 5);
+			}
+			else if (trans[1] == '9')
+			{
+				pg2_fc = 0;
+				lst_btm = 9;
+
+				current_pos.key_number = _neg;
+				current_pos.position_cursor = endo;
+				interrupt_reg.update_data = 1;
+				// HAL_UART_Transmit(&huart1, "8$", 2, 5);
+			}
+			/******************/
+			// endo on / off
+			// else if (trans[1] == '9')
+			// {
+			// 	// left side
+			// 	pg2_fc = 1; // print pg3
+
+			// 	if (current_pos.position_cursor == 1)
+			// 	{
+			// 		current_pos.position_cursor = 2;
+			// 	}
+			// 	else if (current_pos.position_cursor == 2)
+			// 	{
+			// 		current_pos.position_cursor = 3;
+			// 	}
+			// 	else if (current_pos.position_cursor == 3)
+			// 	{
+			// 		current_pos.position_cursor = 1;
+			// 	}
+			// 	else
+			// 	{
+			// 		current_pos.position_cursor = 1;
+			// 	}
+
+			// 	interrupt_reg.update_data = 1;
+			// 	HAL_UART_Transmit(&huart1, "7$", 5, 5);
+			// }
+		}
 
 		if (HAL_GPIO_ReadPin(S_PRV_GPIO_Port, S_PRV_Pin) == 0)
 		{
@@ -1482,12 +1842,10 @@ int main(void)
 				{
 					clr_data(sensor);
 
-
 					if (data_reg.sensor)
 						lcd_puts(3, 7, (int8_t *)"ON");
 					else
 						lcd_puts(3, 7, (int8_t *)"OFF");
-
 				}
 				sns_status = 1;
 			}
@@ -1599,12 +1957,12 @@ int main(void)
 				else if (pg2_fc == 1)
 				{
 					//						lcd_clear();
-					if (last_pg != 3)
-					{
-						lcd_clear();
-						page_3_print();
-						last_pg = 3;
-					}
+					// if (last_pg != 3)
+					// {
+					// 	lcd_clear();
+					// 	page_3_print();
+					// 	last_pg = 3;
+					// }
 					//						lcd_clear();
 					//						page_3_print();
 
@@ -1673,7 +2031,7 @@ int main(void)
 			interrupt_reg.update_data = 0;
 			interrupt_reg.key_flag = 0;
 		}
-		HAL_Delay(100);
+		//		HAL_Delay(100);
 	}
 	/* USER CODE END 3 */
 }
@@ -1739,7 +2097,7 @@ static void MX_I2C1_Init(void)
 
 	/* USER CODE END I2C1_Init 1 */
 	hi2c1.Instance = I2C1;
-	hi2c1.Init.Timing = 0x0000020B;
+	hi2c1.Init.Timing = 0x2000090E;
 	hi2c1.Init.OwnAddress1 = 0;
 	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
 	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -1845,7 +2203,7 @@ static void MX_USART1_UART_Init(void)
 
 	/* USER CODE END USART1_Init 1 */
 	huart1.Instance = USART1;
-	huart1.Init.BaudRate = 9600;
+	huart1.Init.BaudRate = 115200;
 	huart1.Init.WordLength = UART_WORDLENGTH_8B;
 	huart1.Init.StopBits = UART_STOPBITS_1;
 	huart1.Init.Parity = UART_PARITY_NONE;
@@ -1854,7 +2212,7 @@ static void MX_USART1_UART_Init(void)
 	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
 	huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
 	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-	if (HAL_RS485Ex_Init(&huart1, UART_DE_POLARITY_HIGH, 0, 0) != HAL_OK)
+	if (HAL_UART_Init(&huart1) != HAL_OK)
 	{
 		Error_Handler();
 	}
